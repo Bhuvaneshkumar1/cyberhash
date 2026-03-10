@@ -1,2 +1,5 @@
 rich
 pyfiglet
+passlib
+pycryptodome
+crcmod
