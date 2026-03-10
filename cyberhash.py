@@ -13,6 +13,8 @@ import string
 import json
 import signal
 import sys
+import zlib
+from passlib.hash import nthash
 from multiprocessing import Process, Queue
 from rich.console import Console
 from rich.progress import Progress
@@ -124,7 +126,58 @@ try:
 except:
     pass
 
+#==================AUTOMATIC MULTI-ALGO ENGINE==============
 
+def possible_algorithms(hash_value):
+    l = len(hash_value)
+
+
+    if l == 32:
+        return ["MD5", "NTLM"]
+
+    elif l == 40:
+        return ["SHA1"]
+
+    elif l == 56:
+        return ["SHA224"]
+
+    elif l == 64:
+        return ["SHA256", "SHA3_256", "SHAKE256"]
+
+    elif l == 96:
+        return ["SHA384"]
+
+    elif l == 128:
+        return ["SHA512", "SHA3_512", "SHAKE256"]
+
+    return []
+
+
+def auto_check_word(word, target_hash, algos):
+    data = word.encode()
+    hlen = len(target_hash)
+
+    for algo in algos:
+        try:
+            if compute_hash(data, algo, hlen) == target_hash:
+                return (algo, word, "Auto", None)
+        except:
+            pass
+    return None
+
+def resolve_algorithms(args_algo, target_hash):
+    if args_algo:
+        return [args_algo]
+
+    algos = possible_algorithms(target_hash)
+
+    if not algos:
+        console.print("[red]Unable to determine possible algorithms[/red]")
+        sys.exit()
+
+    console.print(f"[yellow][*] Possible algorithms:[/yellow] {', '.join(algos)}")
+
+    return algos
 # ===================== RULE ENGINE =====================
 
 def apply_rules(word):
@@ -240,7 +293,7 @@ def run_mask_attack(mask, target_hash, algo):
 
         tested += 1
 
-        if compute_hash(candidate.encode(), algo) == target_hash:
+        if compute_hash(candidate.encode(), algo, len(target_hash)) == target_hash:
 
             result(candidate, algo, "Mask Attack", None, start, tested)
 
@@ -339,13 +392,14 @@ def distributed_attack(wordlist, target_hash, algo, workers):
     queue = Queue()
 
     processes = []
-
+    def worker(queue, wordlist, start, end, target_hash, algo):
+        result = process_chunk(wordlist, start, end, target_hash, algo)
+        queue.put(result)
     for start, end in ranges:
-
         p = Process(
-            target=lambda q, a, b: q.put(process_chunk(wordlist, a, b, target_hash, algo)),
-            args=(queue, start, end)
-        )
+            target=worker,
+            args=(queue, wordlist, start, end, target_hash, algo)
+)
 
         p.start()
 
@@ -362,27 +416,110 @@ def distributed_attack(wordlist, target_hash, algo, workers):
             return res
 
     return None
+#=======================DETECTION ENGINE==========================
+import re
+
+HASH_SIGNATURES = [
+    {"name": "bcrypt", "regex": r"^\$2[aby]\$\d+\$.*"},
+    {"name": "sha512crypt", "regex": r"^\$6\$.*"},
+    {"name": "sha256crypt", "regex": r"^\$5\$.*"},
+    {"name": "md5crypt", "regex": r"^\$1\$.*"},
+]
+
+def identify_hash(hash_value):
+
+
+# prefix / structure detection
+    for sig in HASH_SIGNATURES:
+        if re.match(sig["regex"], hash_value):
+            return sig["name"].upper()
+
+    # charset detection
+    if re.fullmatch(r"[a-fA-F0-9]+", hash_value):
+
+        length = len(hash_value)
+
+        if length == 32:
+            return "MD5 / NTLM"
+
+        elif length == 40:
+            return "SHA1"
+
+        elif length == 56:
+            return "SHA224"
+
+        elif length == 64:
+            return "SHA256"
+
+        elif length == 96:
+            return "SHA384"
+
+        elif length == 128:
+            return "SHA512"
+
+    # base64 detection
+    if re.fullmatch(r"[A-Za-z0-9+/=]+", hash_value):
+        return "BASE64 ENCODED DATA"
+
+    return "UNKNOWN"
 # ========================= HASH DETECTION =========================
 def detect_algorithm(hash_value):
-    l=len(hash_value)
-    if l==32: return "MD5"
-    if l==40: return "SHA1"
-    if l==64: return "SHA256"
-    if l==128: return "SHA512"
+    l = len(hash_value)
+    if l == 32:
+        return "MD5"
+    elif l == 40:
+        return "SHA1"
+    elif l == 56:
+        return "SHA224"
+    elif l == 64:
+        return "SHA256"
+    elif l == 96:
+        return "SHA384"
+    elif l == 128:
+        return "SHA512"
     return None
-
 # ========================= HASH ENGINE =========================
-def compute_hash(data,algo):
-    if algo=="MD5": return hashlib.md5(data).hexdigest()
-    if algo=="SHA1": return hashlib.sha1(data).hexdigest()
-    if algo=="SHA256": return hashlib.sha256(data).hexdigest()
-    if algo=="SHA512": return hashlib.sha512(data).hexdigest()
-
+def compute_hash(data, algo, hash_length=None):
+    if algo == "MD5":
+        return hashlib.md5(data).hexdigest()
+    elif algo == "SHA1":
+        return hashlib.sha1(data).hexdigest()
+    elif algo == "SHA224":
+        return hashlib.sha224(data).hexdigest()
+    elif algo == "SHA256":
+        return hashlib.sha256(data).hexdigest()
+    elif algo == "SHA384":
+        return hashlib.sha384(data).hexdigest()
+    elif algo == "SHA512":
+        return hashlib.sha512(data).hexdigest()
+    elif algo == "SHA3_224":
+        return hashlib.sha3_224(data).hexdigest()
+    elif algo == "SHA3_256":
+        return hashlib.sha3_256(data).hexdigest()
+    elif algo == "SHA3_384":
+        return hashlib.sha3_384(data).hexdigest()
+    elif algo == "SHA3_512":
+        return hashlib.sha3_512(data).hexdigest()
+    elif algo == "SHA512_224":
+        return hashlib.new("sha512_224", data).hexdigest()
+    elif algo == "SHAKE256":
+        if hash_length is None:
+            hash_length = 64
+        return hashlib.shake_256(data).hexdigest(hash_length // 2)
+    elif algo == "SHAKE128":
+        if hash_length is None:
+            hash_length = 64
+        return hashlib.shake_128(data).hexdigest(hash_length // 2)
+    elif algo == "CRC32":
+        return format(zlib.crc32(data) & 0xffffffff, "08x")  
+    elif algo == "NTLM":
+        return nthash.hash(data.decode())
+    else:
+        raise ValueError(f"Unsupported algorithm: {algo}")
 # ========================= BASE64 =========================
-def base64_hash(data,algo):
-    encoded=base64.b64encode(data)
-    return compute_hash(encoded,algo)
-
+def base64_hash(data, algo, hash_length):
+    encoded = base64.b64encode(data)
+    return compute_hash(encoded, algo, hash_length)
 # ========================= ROT13 =========================
 def rot13(data):
     result=[]
@@ -461,22 +598,22 @@ def check_word(word,target_hash,algo):
 
     data=word.encode()
 
-    if compute_hash(data,algo)==target_hash:
+    if compute_hash(data, algo, len(target_hash)) == target_hash:
         return ("Direct",word,None)
 
-    if base64_hash(data,algo)==target_hash:
+    if base64_hash(data,algo,len(target_hash))==target_hash:
         return ("Base64",word,None)
 
     r13=rot13(data)
-    if compute_hash(r13,algo)==target_hash:
+    if compute_hash(r13,algo,len(target_hash))==target_hash:
         return ("ROT13",word,None)
 
     for shift,val in caesar_variants(data):
-        if compute_hash(val,algo)==target_hash:
+        if compute_hash(val,algo,len(target_hash))==target_hash:
             return ("Caesar",word,shift)
 
     for m in mutations(data):
-        if compute_hash(m,algo)==target_hash:
+        if compute_hash(m,algo,len(target_hash))==target_hash:
             return ("Mutation",m.decode(),None)
 
     return None
@@ -502,24 +639,20 @@ def result(word,algo,method,shift,start,count):
 
 # ========================= BENCHMARK =========================
 def benchmark(algo):
-
     console.print("[yellow]Running benchmark...[/yellow]")
-
     test=b"benchmarkpassword"
     start=time.time()
-
     count=0
-
     while time.time()-start<3:
-        compute_hash(test,algo)
+        compute_hash(test, algo, 64)
         count+=1
-
     speed=count/3
-
     console.print(f"[green]Speed:[/green] {int(speed)} H/s")
-
 # ========================= MAIN ENGINE =========================
 def main():
+    global CURRENT_INDEX
+    global CURRENT_WORDLIST
+    global TARGET_HASH
     parser = argparse.ArgumentParser(description="Cyber Hash Analyzer")
     parser.add_argument("--hash", required=True, help="target hash")
     parser.add_argument("--threads", type=int, default=4)
@@ -529,29 +662,33 @@ def main():
     parser.add_argument("--resume", action="store_true", help="resume previous session")
     parser.add_argument("--distributed", type=int, help="number of distributed workers")
     parser.add_argument("--rules", action="store_true", help="enable rule engine")
+    parser.add_argument("--algo", help="Manually specify algorithm")
     args = parser.parse_args()
     clear_terminal()
     banner()
     target_hash = args.hash.lower()
-    algo = detect_algorithm(target_hash)
+    fingerprint = identify_hash(target_hash)
+    console.print(f"[cyan][*] Hash fingerprint:[/cyan] {fingerprint}")
+    algo = resolve_algorithms(args.algo, target_hash)
     if not algo:
         console.print("[red]Unsupported hash type[/red]")
         return
-    console.print(f"[yellow]Detected Algorithm:[/yellow] {algo}")
+    console.print(f"[yellow]Detected Algorithm:[/yellow] {', '.join(algo)}")
     wordlist_path = load_wordlist(args.wordlist)
     if args.benchmark:
-        benchmark(algo)
+        algorithm = resolve_algorithms(args.algo,target_hash)
+        benchmark(algorithm[0])
     if args.mask:
-        success = run_mask_attack(args.mask, target_hash, algo)
+        success = run_mask_attack(args.mask, target_hash, algo[0])
         if success:
             return
     if args.resume:
-        success = resume_scan(wordlist_path, target_hash, algo)
+        success = resume_scan(wordlist_path, target_hash, algo[0])
         if success:
             return
     if args.distributed:
         console.print(f"[yellow][*] Distributed attack with {args.distributed} workers[/yellow]")
-        res = distributed_attack(wordlist_path, target_hash, algo, args.distributed)
+        res = distributed_attack(wordlist_path, target_hash, algo[0], args.distributed)
         if res:
             method, word, shift = res
             result(word, algo, method, shift, time.time(), 0)
@@ -575,17 +712,17 @@ def main():
                         )
                     else:
                         futures.append(
-                            executor.submit(check_word, word, target_hash, algo)
+                            executor.submit(auto_check_word, word, target_hash, algo)
                         )
                     tested += 1
                     progress.update(task, advance=1)
                     if tested % 5000 == 0:
                         save_session(CURRENT_INDEX, wordlist_path, target_hash)
-                    if len(futures) > args.threads * 5:
+                    if len(futures) >= args.threads * 3:
                         for future in futures:
                             res = future.result()
                             if res:
-                                method, w, shift = res
+                                algo, w, method, shift = res
                                 logging.info(f"FOUND {w}")
                                 result(w, algo, method, shift, start, tested)
                                 if os.path.exists(SESSION_FILE):
