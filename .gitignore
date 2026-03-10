@@ -1,0 +1,21 @@
+# Python
+
+**pycache**/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+
+venv/
+myvenv/
+
+# Packaging
+
+*.egg-info/
+dist/
+build/
+
+# Logs
+
+logs/
