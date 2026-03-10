@@ -25,27 +25,29 @@ CyberHash is a **Python-based command line hash analysis tool** designed to simu
 
 The tool supports multiple attack strategies including:
 
-⚡ Dictionary attacks
-⚡ Rule-based mutations
-⚡ Mask attacks
-⚡ Distributed cracking
-⚡ Session resume
-⚡ Multi-threaded hash analysis
+<div>
+⚡ Dictionary attacks <br>
+⚡ Rule-based mutations <br>
+⚡ Mask attacks <br>
+⚡ Distributed cracking <br>
+⚡ Session resume <br>
+⚡ Multi-threaded hash analysis <br>
+</div>
 
 ---
-
 # ✨ Features
-
-✅ Automatic hash algorithm detection
-✅ Multi-threaded cracking engine
-✅ Rule-based mutation engine
-✅ Mask attack generator
-✅ Session resume & checkpoint system
-✅ Distributed cracking support
-✅ Benchmark mode for performance testing
-✅ Colored CLI interface
-✅ Progress monitoring
+<div>
+✅ Automatic hash algorithm detection <br>
+✅ Multi-threaded cracking engine <br>
+✅ Rule-based mutation engine <br>
+✅ Mask attack generator <br>
+✅ Session resume & checkpoint system <br>
+✅ Distributed cracking support <br>
+✅ Benchmark mode for performance testing <br>
+✅ Colored CLI interface <br>
+✅ Progress monitoring <br>
 ✅ Custom wordlist support
+</div>
 
 ---
 
@@ -60,7 +62,6 @@ CyberHash detects the algorithm automatically based on hash length.
 | 64          | SHA256    |
 | 128         | SHA512    |
 
----
 
 ---
 > **Note:**
@@ -115,16 +116,17 @@ cyberhash --hash 5f4dcc3b5aa765d61d8327deb882cf99
 
 # ⚙️ Command Line Options
 
-| Option          | Description                  |
-| --------------- | ---------------------------- |
-| `--hash`        | Target hash value            |
-| `--wordlist`    | Custom wordlist path         |
-| `--threads`     | Number of worker threads     |
-| `--rules`       | Enable rule-based mutations  |
-| `--mask`        | Mask attack pattern          |
-| `--resume`      | Resume interrupted session   |
-| `--distributed` | Distributed cracking workers |
-| `--benchmark`   | Run hash speed benchmark     |
+| Option          | Description                    |
+| --------------- | ----------------------------   |
+| `--hash`        | Target hash value              |
+| `--wordlist`    | Custom wordlist path           |
+| `--threads`     | Number of worker threads       |
+| `--rules`       | Enable rule-based mutations    |
+| `--mask`        | Mask attack pattern            |
+| `--resume`      | Resume interrupted session     |
+| `--distributed` | Distributed cracking workers   |
+| `--benchmark`   | Run hash speed benchmark       |
+| `--algo`        | Choose the specified algorithm |
 
 ---
 
@@ -207,9 +209,12 @@ cyberhash --hash <hash> --distributed 4
 
 CyberHash supports multiple sources.
 
-1️⃣ Custom user wordlists
-2️⃣ Linux system wordlists
+<div>
+1️⃣ Custom user wordlists <br>
+2️⃣ Linux system wordlists <br>
 3️⃣ Default bundled wordlist
+</div>
+
 
 Default location
 
