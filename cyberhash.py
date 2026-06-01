@@ -20,10 +20,9 @@ from rich.console import Console
 from rich.progress import Progress
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 from rich.align import Align
 from pyfiglet import Figlet
-
+import re
 console = Console()
 
 # ========================= LOGGING =========================
@@ -73,7 +72,7 @@ def banner():
 
 # ===================== GLOBAL SESSION STATE =====================
 
-SESSION_FILE = "session.json"
+SESSION_FILE = f"session_{int(time.time())}.json"
 
 CURRENT_INDEX = 0
 CURRENT_WORDLIST = None
@@ -123,14 +122,13 @@ signal.signal(signal.SIGTERM, interrupt_handler)
 
 try:
     signal.signal(signal.SIGTSTP, interrupt_handler)
-except:
-    pass
+except Exception as e:
+    logging.debug(str(e))
 
 #==================AUTOMATIC MULTI-ALGO ENGINE==============
 
 def possible_algorithms(hash_value):
     l = len(hash_value)
-
 
     if l == 32:
         return ["MD5", "NTLM"]
@@ -142,17 +140,17 @@ def possible_algorithms(hash_value):
         return ["SHA224"]
 
     elif l == 64:
-        return ["SHA256", "SHA3_256", "SHAKE256"]
+        return ["SHA256", "SHA3_256"]
 
     elif l == 96:
         return ["SHA384"]
 
     elif l == 128:
-        return ["SHA512", "SHA3_512", "SHAKE256"]
+        return ["SHA512", "SHA3_512"]
 
     return []
-
-
+def validate_hash(hash_value):
+    return bool(re.fullmatch(r"[a-fA-F0-9]+", hash_value))
 def auto_check_word(word, target_hash, algos):
     data = word.encode()
     hlen = len(target_hash)
@@ -161,8 +159,8 @@ def auto_check_word(word, target_hash, algos):
         try:
             if compute_hash(data, algo, hlen) == target_hash:
                 return (algo, word, "Auto", None)
-        except:
-            pass
+        except Exception as e:
+            logging.debug(str(e))
     return None
 
 def resolve_algorithms(args_algo, target_hash):
@@ -200,8 +198,8 @@ def apply_rules(word):
     for r in rules:
         try:
             results.append(r(word))
-        except:
-            pass
+        except Exception as e:
+            logging.debug(str(e))
 
     return results
 
@@ -337,8 +335,8 @@ def resume_scan(wordlist_path, target_hash, algo):
                 if os.path.exists(SESSION_FILE):
                     try:
                         os.remove(SESSION_FILE)
-                    except:
-                        pass
+                    except Exception as e:
+                        logging.debug(str(e))
                 return True
     return False
 # ===================== DISTRIBUTED CRACKING =====================
@@ -373,9 +371,20 @@ def process_chunk(file_path, start, end, target_hash, algo):
 
         f.seek(start)
 
+        if start != 0:
+            f.readline()
+
         while f.tell() < end:
 
-            word = f.readline().strip()
+            word = f.readline()
+
+            if not word:
+                break
+
+            word = word.strip()
+
+            if not word:
+                continue
 
             res = extended_check_word(word, target_hash, algo)
 
@@ -383,7 +392,6 @@ def process_chunk(file_path, start, end, target_hash, algo):
                 return res
 
     return None
-
 
 def distributed_attack(wordlist, target_hash, algo, workers):
 
@@ -406,7 +414,7 @@ def distributed_attack(wordlist, target_hash, algo, workers):
         processes.append(p)
 
     for p in processes:
-        p.join()
+        p.join(timeout=0.1)
 
     while not queue.empty():
 
@@ -667,13 +675,17 @@ def main():
     clear_terminal()
     banner()
     target_hash = args.hash.lower()
+
+    if not validate_hash(target_hash):
+        console.print("[red]Invalid hash format[/red]")
+        sys.exit(1)
     fingerprint = identify_hash(target_hash)
     console.print(f"[cyan][*] Hash fingerprint:[/cyan] {fingerprint}")
     algo = resolve_algorithms(args.algo, target_hash)
     if not algo:
         console.print("[red]Unsupported hash type[/red]")
         return
-    console.print(f"[yellow]Detected Algorithm:[/yellow] {', '.join(algo)}")
+    console.print(f"[yellow]Possible Algorithms:[/yellow] {', '.join(algo)}")
     wordlist_path = load_wordlist(args.wordlist)
     if args.benchmark:
         algorithm = resolve_algorithms(args.algo,target_hash)
@@ -691,10 +703,12 @@ def main():
         res = distributed_attack(wordlist_path, target_hash, algo[0], args.distributed)
         if res:
             method, word, shift = res
-            result(word, algo, method, shift, time.time(), 0)
+            result(word, algo[0], method, shift, start, tested)
             return
     start = time.time()
     tested = 0
+
+    if args.distributed:
     console.print("[blue][*] Starting scan[/blue]")
     with Progress() as progress:
         task = progress.add_task("Scanning", total=None)
@@ -723,13 +737,14 @@ def main():
                             res = future.result()
                             if res:
                                 algo, w, method, shift = res
-                                logging.info(f"FOUND {w}")
+                                safe_word = w.replace("\n", "").replace("\r", "")
+                                logging.info(f"FOUND {safe_word}")
                                 result(w, algo, method, shift, start, tested)
                                 if os.path.exists(SESSION_FILE):
                                     try:
                                         os.remove(SESSION_FILE)
-                                    except:
-                                        pass
+                                    except Exception as e:
+                                        logging.debug(str(e))
                                 return
                         futures = []
     console.print("[red][-] Hash not found[/red]")

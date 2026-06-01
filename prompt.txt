@@ -1,0 +1,53 @@
+You are a senior cybersecurity engineer and Python architect.
+
+Analyze my GitHub project and propose upgrades that would transform it from a learning project into a highly impressive professional cybersecurity framework.
+
+Project repository:
+https://github.com/Bhuvaneshkumar1/cyber-framework
+
+Project summary:
+
+* Python-based modular cybersecurity CLI framework
+* Beginner menu mode and advanced console mode
+* Automatic module discovery
+* Automated attack chain engine
+* Recon, scan, web_scan, exploit modules
+* Intelligence engine
+* Attack graph generation
+* SQLite scan database
+* Distributed scanning support
+* Scan scheduler
+* Rich terminal UI
+* Command auto-completion
+* Persistent command history
+* Syntax highlighting
+
+Your task:
+
+1. Review the architecture conceptually (do not just restate the current structure).
+2. Identify 5–10 advanced upgrades that would significantly improve the framework technically.
+3. Focus on improvements used in professional security tools.
+4. Avoid basic suggestions (like “improve README” or “add comments”).
+5. For each upgrade provide:
+
+   * feature name
+   * what it does
+   * why it improves the framework
+   * example architecture or workflow
+6. Suggest improvements in areas such as:
+
+   * automated vulnerability analysis
+   * attack chain intelligence
+   * distributed scanning architecture
+   * plugin systems
+   * module metadata
+   * reporting engines
+   * security research tooling
+7. Prioritize features that make the project look impressive on GitHub and useful for learning offensive security engineering.
+
+Output format:
+
+1. Feature Name
+2. Description
+3. Why it is powerful
+4. Example architecture/workflow
