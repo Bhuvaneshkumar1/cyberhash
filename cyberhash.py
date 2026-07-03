@@ -709,7 +709,7 @@ def main():
     tested = 0
 
     if args.distributed:
-    console.print("[blue][*] Starting scan[/blue]")
+        console.print("[blue][*] Starting scan[/blue]")
     with Progress() as progress:
         task = progress.add_task("Scanning", total=None)
         with open(wordlist_path, "r", errors="ignore") as f:
