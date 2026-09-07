@@ -1,20 +1,11 @@
 # ⚡ CyberHash
 
 <p align="center">
-
-```
-   ______           __                __  __           __
-  / ____/_  _______/ /_  ___  _____  / / / /___ ______/ /_
- / /   / / / / ___/ __ \/ _ \/ ___  / /_/ / __ `/ ___/ __ \
-/ /___/ /_/ / /__/ / / /  __/ /    / __  / /_/ (__  ) / / /
-\____/\__, /\___/_/ /_/\___/_/    /_/ /_/\__,_/____/_/ /_/
-     /____/
-```
-
-🔐 **CyberHash — High Performance Hash Analysis & Verification Platform**
-
-🚀 Built for security research, password audit verification, and hash identification.
-
+  <img src="banner/banner.png" alt="CyberHash Banner" width="100%" />
+  <br><br>
+  🔐 <b>CyberHash — High Performance Hash Analysis & Verification Platform</b>
+  <br>
+  🚀 Built for security research, password audit verification, and hash identification.
 </p>
 
 ---
