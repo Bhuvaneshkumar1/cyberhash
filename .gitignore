@@ -19,3 +19,7 @@ build/
 # Logs
 
 logs/
+
+# tests
+.benchmarks
+.pytest_cache

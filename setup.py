@@ -1,19 +1,18 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="cyberhash",
     version="3.0",
+    packages=find_packages(),
     py_modules=["cyberhash"],
     install_requires=[
         "rich",
         "pyfiglet",
-        "passlib",
-        "pycryptodome",
-        "crcmod"
+        "passlib"
     ],
     entry_points={
         "console_scripts": [
-            "cyberhash=cyberhash:main"
+            "cyberhash=cyberhash.cli:main"
         ]
     }
 )
